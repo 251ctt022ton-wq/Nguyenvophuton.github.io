@@ -3,18 +3,123 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trang web của Phước Tôn</title>
+    <title>Game Cờ Caro</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; background-color: #282c34; color: white; margin-top: 100px; }
-        h1 { color: #61dafb; font-size: 3rem; }
-        p { font-size: 1.2rem; color: #abb2bf; }
-        .btn { display: inline-block; padding: 10px 20px; background-color: #61dafb; color: #282c34; text-decoration: none; border-radius: 5px; font-weight: bold; margin-top: 20px; }
+        body { 
+            font-family: sans-serif; 
+            text-align: center; 
+            background-color: #f9f9f9; 
+            margin-top: 50px; 
+        }
+        .board { 
+            display: grid; 
+            grid-template-columns: repeat(3, 100px); 
+            gap: 5px; 
+            justify-content: center; 
+            margin-top: 20px;
+        }
+        .cell { 
+            width: 100px; 
+            height: 100px; 
+            font-size: 3em; 
+            cursor: pointer; 
+            background-color: #fff; 
+            border: 2px solid #333; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            border-radius: 8px;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+        }
+        .cell:hover { background-color: #e0e0e0; }
+        #status { 
+            margin: 20px; 
+            font-size: 1.5em; 
+            font-weight: bold; 
+            color: #333;
+        }
+        button { 
+            padding: 10px 20px; 
+            font-size: 1em; 
+            cursor: pointer; 
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            box-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+        }
+        button:hover { background-color: #0056b3; }
     </style>
 </head>
 <body>
-    <h1>Chào thế giới! 🚀</h1>
-    <p>Chào mừng bạn đã đến với trang web đầu tiên của Nguyenvophuton.</p>
-    <p>Trang web này được chạy hoàn toàn miễn phí trên GitHub Pages!</p>
-    <a href="#" class="btn">Bấm vào đây chơi</a>
+
+    <h1>🎮 Game Cờ Caro Mini 🎮</h1>
+    <div id="status">Lượt của X</div>
+    <div class="board" id="board"></div>
+    <br>
+    <button onclick="resetGame()">Chơi lại</button>
+
+    <script>
+        let board = ["", "", "", "", "", "", "", "", ""];
+        let currentPlayer = "X";
+        let gameActive = true;
+
+        function createBoard() {
+            const boardElement = document.getElementById("board");
+            boardElement.innerHTML = "";
+            board.forEach((cell, index) => {
+                const cellElement = document.createElement("div");
+                cellElement.classList.add("cell");
+                cellElement.innerText = cell;
+                // Đổi màu chữ cho X và O
+                if(cell === "X") cellElement.style.color = "#ff4757";
+                if(cell === "O") cellElement.style.color = "#2ed573";
+                
+                cellElement.onclick = () => makeMove(index);
+                boardElement.appendChild(cellElement);
+            });
+        }
+
+        function makeMove(index) {
+            if (board[index] !== "" || !gameActive) return;
+            board[index] = currentPlayer;
+            checkWinner();
+            if(gameActive) {
+                currentPlayer = currentPlayer === "X" ? "O" : "X";
+                document.getElementById("status").innerText = `Lượt của ${currentPlayer}`;
+            }
+            createBoard();
+        }
+
+        function checkWinner() {
+            const winConditions = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8], // Hàng ngang
+                [0, 3, 6], [1, 4, 7], [2, 5, 8], // Hàng dọc
+                [0, 4, 8], [2, 4, 6]             // Chéo
+            ];
+            for (let condition of winConditions) {
+                let [a, b, c] = condition;
+                if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+                    document.getElementById("status").innerText = `🎉 ${board[a]} Đã Thắng! 🎉`;
+                    gameActive = false;
+                    return;
+                }
+            }
+            if (!board.includes("")) {
+                document.getElementById("status").innerText = "🤝 Hòa nhau! 🤝";
+                gameActive = false;
+            }
+        }
+
+        function resetGame() {
+            board = ["", "", "", "", "", "", "", "", ""];
+            currentPlayer = "X";
+            gameActive = true;
+            document.getElementById("status").innerText = "Lượt của X";
+            createBoard();
+        }
+
+        createBoard();
+    </script>
 </body>
 </html>
