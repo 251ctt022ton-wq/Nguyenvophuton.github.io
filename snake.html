@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Game Rắn Săn Mồi</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            text-align: center; 
+            background-color: #2c3e50; 
+            color: white; 
+            margin: 0; 
+            padding-top: 20px; 
+            touch-action: none;
+        }
+        h1 { margin: 10px 0; font-size: 24px; }
+        #score { font-size: 20px; font-weight: bold; margin-bottom: 10px; color: #f1c40f; }
+        
+        canvas { 
+            background-color: #34495e; 
+            border: 3px solid #ecf0f1; 
+            border-radius: 5px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.5); 
+        }
+        
+        .controls { 
+            margin-top: 20px; 
+            display: grid; 
+            grid-template-columns: 70px 70px 70px; 
+            justify-content: center; 
+            gap: 10px; 
+        }
+        .controls button { 
+            width: 70px; 
+            height: 70px; 
+            font-size: 30px; 
+            background: #3498db; 
+            color: white; 
+            border: none; 
+            border-radius: 15px; 
+            cursor: pointer;
+            box-shadow: 0 4px #2980b9;
+        }
+        .controls button:active { 
+            box-shadow: 0 0 #2980b9; 
+            transform: translateY(4px); 
+        }
+        .up { grid-column: 2; }
+        .left { grid-column: 1; grid-row: 2; }
+        .right { grid-column: 3; grid-row: 2; }
+        .down { grid-column: 2; grid-row: 2; }
+        
+        .restart { 
+            margin-top: 25px; 
+            padding: 12px 30px; 
+            font-size: 18px; 
+            background: #e74c3c; 
+            border: none; 
+            color: white; 
+            border-radius: 8px; 
+            font-weight: bold;
+            cursor: pointer; 
+            box-shadow: 0 4px #c0392b;
+        }
+        .restart:active {
+            box-shadow: 0 0 #c0392b;
+            transform: translateY(4px);
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🐍 Rắn Săn Mồi 🐍</h1>
+    <div id="score">Điểm: 0</div>
+    <canvas id="gameCanvas" width="300" height="300"></canvas>
+
+    <div class="controls">
+        <button class="up" onclick="changeDirection('UP')">⬆️</button>
+        <button class="left" onclick="changeDirection('LEFT')">⬅️</button>
+        <button class="down" onclick="changeDirection('DOWN')">⬇️</button>
+        <button class="right" onclick="changeDirection('RIGHT')">➡️</button>
+    </div>
+    
+    <button class="restart" onclick="resetGame()">Chơi Lại</button>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        
+        const box = 15; 
+        let snake, food, score, d, game;
+
+        function init() {
+            snake = [];
+            snake[0] = { x: 9 * box, y: 10 * box }; 
+            
+            food = {
+                x: Math.floor(Math.random() * 19 + 1) * box,
+                y: Math.floor(Math.random() * 19 + 1) * box
+            };
+            
+            score = 0;
+            d = "RIGHT"; 
+            document.getElementById("score").innerText = "Điểm: " + score;
+            
+            clearInterval(game);
+            game = setInterval(draw, 120); 
+        }
+
+        document.addEventListener("keydown", function(event) {
+            let key = event.keyCode;
+            if (key == 37 && d != "RIGHT") d = "LEFT";
+            else if (key == 38 && d != "DOWN") d = "UP";
+            else if (key == 39 && d != "LEFT") d = "RIGHT";
+            else if (key == 40 && d != "UP") d = "DOWN";
+        });
+
+        function changeDirection(newDir) {
+            if (newDir == "LEFT" && d != "RIGHT") d = "LEFT";
+            else if (newDir == "UP" && d != "DOWN") d = "UP";
+            else if (newDir == "RIGHT" && d != "LEFT") d = "RIGHT";
+            else if (newDir == "DOWN" && d != "UP") d = "DOWN";
+        }
+
+        function collision(head, array) {
+            for (let i = 0; i < array.length; i++) {
+                if (head.x == array[i].x && head.y == array[i].y) return true;
+            }
+            return false;
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            for (let i = 0; i < snake.length; i++) {
+                ctx.fillStyle = (i == 0) ? "#2ecc71" : "#27ae60"; 
+                ctx.fillRect(snake[i].x, snake[i].y, box, box);
+                ctx.strokeStyle = "#2c3e50";
+                ctx.strokeRect(snake[i].x, snake[i].y, box, box);
+            }
+
+            ctx.fillStyle = "#e74c3c";
+            ctx.fillRect(food.x, food.y, box, box);
+
+            let snakeX = snake[0].x;
+            let snakeY = snake[0].y;
+
+            if (d == "LEFT") snakeX -= box;
+            if (d == "UP") snakeY -= box;
+            if (d == "RIGHT") snakeX += box;
+            if (d == "DOWN") snakeY += box;
+
+            if (snakeX == food.x && snakeY == food.y) {
+                score++;
+                document.getElementById("score").innerText = "Điểm: " + score;
+                food = {
+                    x: Math.floor(Math.random() * 19 + 1) * box,
+                    y: Math.floor(Math.random() * 19 + 1) * box
+                };
+            } else {
+                snake.pop();
+            }
+
+            let newHead = { x: snakeX, y: snakeY };
+
+            if (snakeX < 0 || snakeX >= canvas.width || 
+                snakeY < 0 || snakeY >= canvas.height || 
+                collision(newHead, snake)) {
+                
+                clearInterval(game);
+                setTimeout(() => alert("Úi chà, đụng tường rồi! Điểm của bạn: " + score), 100);
+            }
+
+            snake.unshift(newHead);
+        }
+
+        function resetGame() {
+            init();
+        }
+
+        init();
+    </script>
+</body>
+</html>
