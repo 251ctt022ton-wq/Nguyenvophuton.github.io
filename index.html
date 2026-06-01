@@ -3,13 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-select=none">
-    <title>Retro Mario Pro - Github Pages</title>
+    <title>Super Mario Pro - Phaser 3 Engine</title>
     <style>
-        * { box-sizing: border-box; user-select: none; -webkit-user-select: none; touch-action: none; }
+        * { box-sizing: border-box; user-select: none; -webkit-user-select: none; margin: 0; padding: 0; }
         body {
-            margin: 0;
-            padding: 0;
-            background-color: #0f172a;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
             color: #fff;
             font-family: 'Courier New', Courier, monospace;
             display: flex;
@@ -19,365 +17,260 @@
             min-height: 100vh;
             overflow: hidden;
         }
-        h2 { margin: 5px 0; color: #ffcc00; text-transform: uppercase; font-size: 1rem; letter-spacing: 2px; }
-        
-        #game-container {
-            position: relative;
-            background: #5c94fc; /* Bầu trời */
-            border: 5px solid #fff;
-            border-radius: 12px;
-            box-shadow: 0 15px 40px rgba(0,0,0,0.8), 0 0 10px rgba(255,255,255,0.1);
-        }
-
-        canvas { display: block; border-radius: 6px; }
-
-        /* Nút điều khiển Mobile đẹp hơn */
-        .mobile-controls {
-            display: none;
-            width: 100%;
-            max-width: 600px;
-            justify-content: space-between;
-            padding: 15px;
-            position: absolute;
-            bottom: 10px;
-            z-index: 10;
-        }
-        .btn-group { display: flex; gap: 15px; }
-        .ctrl-btn {
-            width: 65px;
-            height: 65px;
-            background: rgba(255, 255, 255, 0.2);
+        h2 { margin-bottom: 15px; color: #ffcc00; text-transform: uppercase; font-size: 1.2rem; letter-spacing: 2px; text-shadow: 0 0 10px rgba(255,204,0,0.3); }
+        #game-wrapper {
             border: 4px solid #fff;
-            border-radius: 50%;
-            color: #fff;
-            font-size: 1.8rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            backdrop-filter: blur(5px);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            border-radius: 16px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+            overflow: hidden;
+            background-color: #000;
         }
-        .ctrl-btn:active { background: rgba(255, 255, 255, 0.5); transform: translateY(2px); }
-
-        @media (max-width: 768px) {
-            .mobile-controls { display: flex; }
-            #game-container { margin-bottom: 90px; }
-        }
+        .instruction { margin-top: 15px; color: #94a3b8; font-size: 0.85rem; text-align: center; }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
 </head>
 <body>
 
-    <h2>Mario Retro Pro - Đồ họa 2.0</h2>
-    <div id="game-container">
-        <canvas id="gameCanvas" width="600" height="350"></canvas>
+    <h2>Mario Phaser Engine Pro</h2>
+    <div id="game-wrapper">
+        <div id="phaser-game"></div>
     </div>
-
-    <div class="mobile-controls">
-        <div class="btn-group">
-            <div class="ctrl-btn" id="btn-left">◀</div>
-            <div class="ctrl-btn" id="btn-right">▶</div>
-        </div>
-        <div class="ctrl-btn" id="btn-jump">▲</div>
-    </div>
+    <div class="instruction">PC: Phím Mũi Tên để di chuyển | Mobile: Chạm nửa trái/phải để đi, nửa trên để nhảy</div>
 
     <script>
-        const canvas = document.getElementById("gameCanvas");
-        const ctx = canvas.getContext("2d");
+        // Dữ liệu hình ảnh Base64 được tối ưu hóa để tự vẽ texture sắc nét trong game
+        const assets = {
+            mario: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAgCAYAAAALg507AAAAAXNSR0IArs4c6QAAAExJREFUSEtjejQMDPyD0fBwMJA9ZID6mAGmD0I08P9wMJB6bID8UANMvxG0bMAwGvj/g9FwRjWUYTSQUQ1lGA1kVEMZRvXAoTSQEAMA4iUkEVwFm78AAAAASUVORK5CYII=', // Khối nhân vật
+            goomba: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAAAXNSR0IArs4c6QAAADFJREFUOE9jPMDAcJiBAsA4VA00MFAZDA0MVAZDAwOVwdDAQGUwNDBQGQwNDFQGg8YAAOnpAhGfG6YhAAAAAElFTkSuQmCC', // Khối quái nấm
+            ground: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAADNJREFUWEft0rENwAAAwzC6/6LtG67pYAEG9O4wO9K6Wf7fAAsWLFiwYMGChW8WvFmcoAAL/u89EfP9/AAAAABJRU5ErkJggg==', // Khối đất kết cấu
+            brick: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAADRJREFUWEft0rENwAAAxDC6/6LtG67pQAAGdLg7zI60bpb/N8CCBQsWLFiwYOGbBW8WJyjAgv8bORHz/fMAAAAASUVORK5CYII='  // Khối gạch đỏ
+        };
 
-        // Cấu hình vật lý nâng cao
-        const GRAVITY = 0.5;
-        const JUMP_FORCE = -11.5; // Nhảy cao hơn một chút cho mượt
-        const SPEED = 4;
-        let gameStatus = "PLAYING"; 
+        // Cấu hình hệ thống của Game Engine
+        const config = {
+            type: Phaser.AUTO,
+            width: 640,
+            height: 360,
+            parent: 'phaser-game',
+            physics: {
+                default: 'arcade',
+                arcade: {
+                    gravity: { y: 1000 }, // Trọng lực vật lý mượt mà
+                    debug: false
+                }
+            },
+            scene: {
+                preload: preload,
+                create: create,
+                update: update
+            }
+        };
+
+        const game = new Phaser.Game(config);
+        let player;
+        let cursors;
+        let platforms;
+        let enemies;
+        let particles;
         let score = 0;
+        let scoreText;
+        let gameOver = false;
 
-        // Mario được nâng cấp đồ họa
-        const mario = {
-            x: 50, y: 200,
-            width: 28, height: 36, // To hơn chút
-            vx: 0, vy: 0,
-            grounded: false,
-            facing: "right",
-            state: "idle" // idle, running, jumping
-        };
-
-        const camera = { x: 0 };
-        const keys = { left: false, right: false, up: false };
-
-        // Bản đồ (có vực thẳm và độ phức tạp hơn)
-        const platforms = [
-            { x: 0, y: 310, w: 700, h: 40, type: 'g' },
-            { x: 800, y: 310, w: 300, h: 40, type: 'g' }, 
-            { x: 1250, y: 310, w: 1000, h: 40, type: 'g' }, // Vực thẳm 700-800 và 1100-1250
-            
-            // Khối gạch chi tiết
-            { x: 200, y: 220, w: 32, h: 32, type: 'b' },
-            { x: 232, y: 220, w: 32, h: 32, type: 'b' },
-            { x: 264, y: 220, w: 32, h: 32, type: 'b' },
-            
-            // Ống nước chi tiết
-            { x: 450, y: 250, w: 48, h: 60, type: 'p' }, 
-            { x: 650, y: 210, w: 48, h: 100, type: 'p' }, 
-
-            { x: 900, y: 230, w: 100, h: 20, type: 'b' },
-            { x: 1400, y: 230, w: 120, h: 20, type: 'b' },
-            { x: 1600, y: 150, w: 100, h: 20, type: 'b' },
-            
-            // Cột cờ đẹp hơn
-            { x: 1950, y: 110, w: 12, h: 200, type: 'f' }
-        ];
-
-        // Quái được nâng cấp
-        const enemies = [
-            { x: 350, y: 282, w: 28, h: 28, vx: -1.5, alive: true, type: 'goomba', dy: 0 },
-            { x: 950, y: 282, w: 28, h: 28, vx: -1.5, alive: true, type: 'goomba', dy: 0 },
-            { x: 1500, y: 282, w: 28, h: 28, vx: -1.2, alive: true, type: 'goomba', dy: 0 }
-        ];
-
-        // PC Controls
-        window.addEventListener("keydown", (e) => {
-            if (e.key === "ArrowLeft" || e.key === "a") keys.left = true;
-            if (e.key === "ArrowRight" || e.key === "d") keys.right = true;
-            if (e.key === "ArrowUp" || e.key === "w" || e.key === " ") keys.up = true;
-            if (gameStatus !== "PLAYING" && (e.key === "r" || e.key === "Enter")) resetGame();
-        });
-
-        window.addEventListener("keyup", (e) => {
-            if (e.key === "ArrowLeft" || e.key === "a") keys.left = false;
-            if (e.key === "ArrowRight" || e.key === "d") keys.right = false;
-            if (e.key === "ArrowUp" || e.key === "w" || e.key === " ") keys.up = false;
-        });
-
-        // Mobile Controls
-        const setupMobileButton = (id, keyName) => {
-            const btn = document.getElementById(id);
-            btn.addEventListener("touchstart", (e) => { e.preventDefault(); keys[keyName] = true; });
-            btn.addEventListener("touchend", (e) => { e.preventDefault(); keys[keyName] = false; });
-        };
-        setupMobileButton("btn-left", "left");
-        setupMobileButton("btn-right", "right");
-        setupMobileButton("btn-jump", "up");
-        canvas.addEventListener("touchstart", (e) => { e.preventDefault(); if(gameStatus !== "PLAYING") resetGame(); });
-
-        function checkCollision(obj1, obj2) {
-            return obj1.x < obj2.x + obj2.w &&
-                   obj1.x + obj1.width > obj2.x &&
-                   obj1.y < obj2.y + obj2.h &&
-                   obj1.y + obj1.height > obj2.y;
+        // 1. TẢI TÀI NGUYÊN (PRELOAD)
+        function preload() {
+            this.load.image('mario', assets.mario);
+            this.load.image('goomba', assets.goomba);
+            this.load.image('ground', assets.ground);
+            this.load.image('brick', assets.brick);
         }
 
-        function resetGame() {
-            mario.x = 50; mario.y = 200; mario.vx = 0; mario.vy = 0;
-            camera.x = 0; score = 0; gameStatus = "PLAYING";
-            enemies.forEach(en => { en.alive = true; en.x = en.x; en.dy = 0; });
+        // 2. KHỞI TẠO THẾ GIỚI GAME (CREATE)
+        function create() {
+            // Thiết lập bầu trời có hiệu ứng Gradient đẹp mắt thông qua đồ họa của Phaser
+            let sky = this.add.graphics();
+            sky.fillGradientStyle(0x5c94fc, 0x5c94fc, #b7d1ff, #b7d1ff, 1);
+            sky.fillRect(0, 0, 3000, 360);
+
+            // Tạo nhóm vật thể tĩnh (Địa hình có va chạm)
+            platforms = this.physics.add.staticGroup();
+
+            // Thiết kế bản đồ nâng cao: Đất liền, Vực thẳm, Khối hộp gạch
+            // Vẽ nền mặt đất
+            for (let x = 0; x < 900; x += 32) platforms.create(x, 344, 'ground').setTint(0xfc9838).refreshBody();
+            for (let x = 1050; x < 1800; x += 32) platforms.create(x, 344, 'ground').setTint(0xfc9838).refreshBody();
+            for (let x = 1950; x < 2600; x += 32) platforms.create(x, 344, 'ground').setTint(0xfc9838).refreshBody();
+
+            // Vẽ các bậc thang gạch lơ lửng chuyên nghiệp
+            let brickLocations = [
+                {x: 250, y: 240}, {x: 282, y: 240}, {x: 314, y: 240},
+                {x: 600, y: 200}, {x: 632, y: 200},
+                {x: 1200, y: 220}, {x: 1232, y: 220}, {x: 1500, y: 160}
+            ];
+            brickLocations.forEach(loc => {
+                platforms.create(loc.x, loc.y, 'brick').setTint(0xc84c0c).refreshBody();
+            });
+
+            // Tạo nhân vật Mario với hiệu ứng vật lý cao cấp
+            player = this.physics.add.sprite(80, 200, 'mario').setTint(0xfc2c00);
+            player.setCollideWorldBounds(false); // Cho phép rơi xuống vực tự do
+            player.setBounce(0.05); // Độ nảy nhẹ khi tiếp đất
+            player.body.setGravityY(200);
+
+            // Tạo hiệu ứng hạt bụi đất khi di chuyển chân thực
+            particles = this.add.particles(0, 0, 'ground', {
+                speed: { min: -50, max: 50 },
+                angle: { min: 0, max: 360 },
+                scale: { start: 0.1, end: 0 },
+                blendMode: 'ADD',
+                lifespan: 300,
+                gravityY: 100,
+                emitting: false
+            });
+
+            // Tạo danh sách Quái vật tuần tra
+            enemies = this.physics.add.group();
+            let enemyLocs = [450, 750, 1350, 1650, 2100];
+            enemyLocs.forEach(ex => {
+                let goomba = enemies.create(ex, 300, 'goomba').setTint(0xa84400);
+                goomba.setVelocityX(-80);
+                goomba.setCollideWorldBounds(false);
+                goomba.body.setBounceX(1); // Tự quay đầu khi đụng chướng ngại vật
+            });
+
+            // Thiết lập va chạm cơ học giữa các thực thể
+            this.physics.add.collider(player, platforms);
+            this.physics.add.collider(enemies, platforms);
+            
+            // Xử lý va chạm giữa Mario và Quái vật bằng hàm tùy biến
+            this.physics.add.overlap(player, enemies, hitEnemy, null, this);
+
+            // Thiết lập Camera chuyên nghiệp - Khóa trục Y, Cuộn mượt trục X theo nhân vật
+            this.cameras.main.setBounds(0, 0, 2600, 360);
+            this.physics.world.setBounds(0, 0, 2600, 360);
+            this.cameras.main.startFollow(player, true, 0.1, 0, -100, 50);
+
+            // Giao diện hiển thị điểm số cố định trên màn hình (Hỗ trợ đổ bóng Neon)
+            scoreText = this.add.text(20, 20, 'SCORE: 000000', { 
+                fontSize: '20px', 
+                fill: '#fff', 
+                fontFamily: 'Courier New',
+                fontWeight: 'bold'
+            }).setScrollFactor(0);
+            scoreText.setShadow(2, 2, 'rgba(0,0,0,0.5)', 2);
+
+            // Khởi tạo trình đọc sự kiện bàn phím PC
+            cursors = this.input.keyboard.createCursorKeys();
+
+            // Hỗ trợ thiết bị di động cảm ứng thông minh
+            this.input.on('pointerdown', function (pointer) {
+                if (gameOver) { this.scene.restart(); gameOver = false; score = 0; return; }
+                
+                if (pointer.y < 180 && player.body.touching.down) {
+                    player.setVelocityY(-420); // Chạm nửa trên màn hình để nhảy
+                } else if (pointer.x < window.innerWidth / 2) {
+                    player.setVelocityX(-180); // Chạm nửa trái để lùi
+                } else {
+                    player.setVelocityX(180);  // Chạm nửa phải để tiến
+                }
+            }, this);
         }
 
+        // 3. XỬ LÝ LOGIC TRONG TỪNG KHUNG HÌNH (UPDATE - 60 FPS)
         function update() {
-            if (gameStatus !== "PLAYING") return;
+            if (gameOver) return;
 
-            // Xử lý chuyển động và state
-            if (keys.left) {
-                mario.vx = -SPEED; mario.facing = "left"; mario.state = "running";
-            } else if (keys.right) {
-                mario.vx = SPEED; mario.facing = "right"; mario.state = "running";
+            // Di chuyển bằng bàn phím PC kết hợp hiệu ứng tạo bụi hạt
+            if (cursors.left.isDown) {
+                player.setVelocityX(-180);
+                if(player.body.touching.down) {
+                    particles.emitParticleAt(player.x, player.y + 16, 1);
+                }
+            } else if (cursors.right.isDown) {
+                player.setVelocityX(180);
+                if(player.body.touching.down) {
+                    particles.emitParticleAt(player.x, player.y + 16, 1);
+                }
             } else {
-                mario.vx = 0; mario.state = "idle";
+                // Tạo lực ma sát hãm phanh từ từ cho chuyển động chân thực hơn
+                player.setVelocityX(player.body.velocity.x * 0.8);
             }
 
-            if (!mario.grounded) mario.state = "jumping";
-
-            if (keys.up && mario.grounded) {
-                mario.vy = JUMP_FORCE;
-                mario.grounded = false;
-                mario.state = "jumping";
+            // Nhảy lên mượt mà có tính toán độ cao trần vật lý
+            if ((cursors.up.isDown || cursors.space.isDown) && player.body.touching.down) {
+                player.setVelocityY(-430);
             }
 
-            mario.vy += GRAVITY;
-            mario.x += mario.vx;
-            if (mario.x < 0) mario.x = 0;
-
-            platforms.forEach(p => {
-                if (checkCollision(mario, p) && p.type !== 'f') {
-                    if (mario.vx > 0) mario.x = p.x - mario.width;
-                    if (mario.vx < 0) mario.x = p.x + p.w;
+            // Đồng bộ hướng di chuyển của quái vật tuần tra tự động
+            enemies.children.iterate(function (goomba) {
+                if (goomba && goomba.body.touching.left) {
+                    goomba.setVelocityX(80);
+                } else if (goomba && goomba.body.touching.right) {
+                    goomba.setVelocityX(-80);
                 }
             });
 
-            mario.y += mario.vy;
-            mario.grounded = false;
+            // Tự động kiểm tra điều kiện Rơi xuống vực sâu -> Game Over
+            if (player.y > 360) {
+                executeGameOver(this);
+            }
 
-            platforms.forEach(p => {
-                if (checkCollision(mario, p)) {
-                    if (p.type === 'f') { gameStatus = "WIN"; return; }
-                    if (mario.vy > 0) { 
-                        mario.y = p.y - mario.height; mario.vy = 0; mario.grounded = true;
-                    } else if (mario.vy < 0) { 
-                        mario.y = p.y + p.h; mario.vy = 0;
-                    }
-                }
-            });
+            // Kiểm tra điều kiện Cán Đích Chiến Thắng (Vượt qua mốc tọa độ x = 2400)
+            if (player.x > 2400) {
+                executeWin(this);
+            }
+        }
 
-            enemies.forEach(en => {
-                if (!en.alive) return;
-                en.x += en.vx;
-
-                platforms.forEach(p => {
-                    if (p.type !== 'f' && checkCollision({x: en.x, y: en.y, width: en.w, height: en.h}, p)) {
-                        en.vx *= -1; // Quái quay đầu nếu đụng gạch/ống
-                        en.x += en.vx * 2; // Đẩy ra chút
-                    }
+        // Hàm xử lý va chạm thông minh với quái vật
+        function hitEnemy(player, enemy) {
+            // Nếu Mario đang rơi từ trên xuống đầu quái
+            if (player.body.velocity.y > 0 && player.y + 10 < enemy.y) {
+                // Kích hoạt hiệu ứng vụ nổ sao lấp lánh khi giẫm chết quái
+                let emitter = this.add.particles(enemy.x, enemy.y, 'brick', {
+                    speed: 120, scale: { start: 0.2, end: 0 }, lifespan: 400, quantity: 10, emitting: false
                 });
+                emitter.explode();
 
-                if (checkCollision(mario, {x: en.x, y: en.y, w: en.w, h: en.h})) {
-                    // Nếu Mario giẫm lên đầu Quái
-                    if (mario.vy > 0 && mario.y + mario.height - mario.vy <= en.y + 12) {
-                        en.alive = false;
-                        score += 100;
-                        mario.vy = JUMP_FORCE / 1.6;
-                        en.dy = JUMP_FORCE / 2; // Hiệu ứng quái nảy lên nhẹ khi chết
-                    } else {
-                        gameStatus = "GAMEOVER";
-                    }
-                }
-            });
-
-            if (mario.y > canvas.height) { gameStatus = "GAMEOVER"; }
-
-            if (mario.x > canvas.width / 2) { camera.x = mario.x - canvas.width / 2; }
-        }
-
-        // --- CÁC HÀM VẼ GIẢ PIXEL ART ĐẸP HƠN ---
-
-        function drawMario(ctx, m) {
-            const x = m.x, y = m.y;
-            
-            // Mũ
-            ctx.fillStyle = "#fc2c00"; 
-            ctx.fillRect(x + 4, y, m.width - 8, 8); 
-            ctx.fillRect(x, y + 4, 8, 4); 
-
-            // Tóc/Râu
-            ctx.fillStyle = "#a84400"; 
-            ctx.fillRect(x, y + 8, 4, 12);
-            ctx.fillRect(x + 4, y + 12, m.width - 12, 4);
-
-            // Da
-            ctx.fillStyle = "#fca044"; 
-            ctx.fillRect(x + 4, y + 8, m.width - 12, 8); 
-            ctx.fillRect(x, y + 12, 4, 4);
-
-            // Thân/Áo đỏ
-            ctx.fillStyle = "#fc2c00"; 
-            ctx.fillRect(x + 6, y + 20, m.width - 12, 10);
-
-            // Quần yếm
-            ctx.fillStyle = "#a84400"; 
-            ctx.fillRect(x + 2, y + 20, 4, 16); 
-            ctx.fillRect(x + m.width - 6, y + 20, 4, 16);
-            ctx.fillRect(x + 2, y + 30, m.width - 4, 6);
-            
-            // Giày
-            ctx.fillStyle = "#6b3c10"; 
-            ctx.fillRect(x, y + 34, 8, 2); 
-            ctx.fillRect(x + m.width - 8, y + 34, 8, 2);
-        }
-
-        function drawBrick(ctx, p) {
-            ctx.fillStyle = "#c84c0c"; ctx.fillRect(p.x, p.y, p.w, p.h);
-            ctx.fillStyle = "#fc9838"; 
-            ctx.fillRect(p.x + 2, p.y + 2, p.w - 4, p.h - 4);
-            ctx.fillStyle = "#000"; // Họa tiết gạch
-            ctx.fillRect(p.x + 10, p.y + 8, 4, 4);
-            ctx.fillRect(p.x + p.w - 14, p.y + p.h - 12, 4, 4);
-        }
-
-        function drawPipe(ctx, p) {
-            // Thân ống đẹp hơn với viền và bóng
-            ctx.fillStyle = "#00a800"; ctx.fillRect(p.x, p.y, p.w, p.h);
-            ctx.strokeStyle = "#004400"; ctx.lineWidth = 3; ctx.strokeRect(p.x, p.y, p.w, p.h);
-            ctx.fillStyle = "#00fc00"; ctx.fillRect(p.x + 3, p.y, 6, p.h);
-            // Miệng ống
-            ctx.fillStyle = "#00fc00"; ctx.fillRect(p.x - 6, p.y, p.w + 12, 20);
-            ctx.strokeStyle = "#004400"; ctx.lineWidth = 3; ctx.strokeRect(p.x - 6, p.y, p.w + 12, 20);
-        }
-
-        function drawGround(ctx, p) {
-            ctx.fillStyle = "#fc9838"; ctx.fillRect(p.x, p.y, p.w, p.h);
-            ctx.fillStyle = "#00a800"; ctx.fillRect(p.x, p.y, p.w, 8); // Phủ cỏ
-            ctx.fillStyle = "#fff"; ctx.fillRect(p.x, p.y + 12, p.w, 1); // Họa tiết đất
-        }
-
-        function drawGoomba(ctx, en) {
-            if(!en.alive) {
-                ctx.fillStyle = "rgba(168, 68, 0, 0.5)"; // Quái chết trong mờ
-                ctx.fillRect(en.x, en.y + 10, en.w, en.h - 10);
-                return;
-            }
-            // Đầu nấm
-            ctx.fillStyle = "#a84400"; ctx.fillRect(en.x, en.y, en.w, 20);
-            // Thân/Chân
-            ctx.fillStyle = "#fff"; ctx.fillRect(en.x + 6, en.y + 20, 16, 8);
-            ctx.fillStyle = "#000"; 
-            ctx.fillRect(en.x + 4, en.y + 24, 6, 4); ctx.fillRect(en.x + en.w - 10, en.y + 24, 6, 4); // Chân
-            ctx.fillRect(en.x + 6, en.y + 6, 4, 6); ctx.fillRect(en.x + en.w - 10, en.y + 6, 4, 6); // Mắt
-        }
-
-        function draw() {
-            // Xóa trời
-            ctx.fillStyle = "#5c94fc"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            ctx.save();
-            ctx.translate(-camera.x, 0);
-
-            // Vẽ vật thể chi tiết
-            platforms.forEach(p => {
-                if (p.type === 'g') drawGround(ctx, p);
-                else if (p.type === 'b') drawBrick(ctx, p);
-                else if (p.type === 'p') drawPipe(ctx, p);
-                else if (p.type === 'f') {
-                    ctx.fillStyle = "#fff"; ctx.fillRect(p.x, p.y, p.w, p.h); // Thân cột
-                    ctx.fillStyle = "#fc2c00"; ctx.fillRect(p.x - 22, p.y, 22, 16); // Lá cờ
-                }
-            });
-
-            // Vẽ quái
-            enemies.forEach(en => {
-                if(!en.alive && en.dy !== 0) { // Hiệu ứng quái nảy nhẹ khi chết
-                    en.dy += GRAVITY; en.y += en.dy;
-                }
-                drawGoomba(ctx, en);
-            });
-
-            // Vẽ Mario
-            drawMario(ctx, mario);
-
-            ctx.restore();
-
-            // UI
-            ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.fillRect(10, 10, 180, 45); // Khung điểm nền mờ
-            ctx.fillStyle = "#ffcc00"; ctx.font = "bold 16px 'Courier New'"; ctx.fillText(`SCORE: ${score}`, 25, 30);
-            ctx.fillStyle = "#fff"; ctx.font = "14px 'Courier New'"; ctx.fillText(`MARIO`, 25, 48);
-
-            // End Screen mượt hơn
-            if (gameStatus === "GAMEOVER") {
-                ctx.fillStyle = "rgba(15, 23, 42, 0.8)"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.fillStyle = "#ff2c00"; ctx.font = "bold 32px 'Courier New'"; ctx.textAlign = "center";
-                ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 15);
-                ctx.fillStyle = "#fff"; ctx.font = "bold 14px 'Courier New'";
-                ctx.fillText("Nhấn 'R' hoặc Chạm màn hình để THỬ LẠI", canvas.width / 2, canvas.height / 2 + 30);
-                ctx.textAlign = "start";
-            } else if (gameStatus === "WIN") {
-                ctx.fillStyle = "rgba(15, 23, 42, 0.8)"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.fillStyle = "#ffcc00"; ctx.font = "bold 32px 'Courier New'"; ctx.textAlign = "center";
-                ctx.fillText("YOU WIN! VICTORY!", canvas.width / 2, canvas.height / 2 - 15);
-                ctx.fillStyle = "#fff"; ctx.font = "bold 14px 'Courier New'";
-                ctx.fillText("Chúc mừng! Bạn đã chinh phục Retro Mario Pro.", canvas.width / 2, canvas.height / 2 + 30);
-                ctx.textAlign = "start";
+                enemy.destroy(); // Xóa sổ quái vật
+                player.setVelocityY(-280); // Nảy giật ngược người lên lại
+                score += 200;
+                scoreText.setText('SCORE: ' + String(score).padStart(6, '0'));
+            } else {
+                // Ngược lại, đụng cạnh bên -> Thua trận
+                executeGameOver(this);
             }
         }
 
-        function gameLoop() { update(); draw(); requestAnimationFrame(gameLoop); }
-        gameLoop();
+        // Hàm kết thúc trò chơi (Thua cuộc)
+        function executeGameOver(scene) {
+            if (gameOver) return;
+            gameOver = true;
+            player.setVelocity(0, -300); // Hiệu ứng Mario văng lên trời khi thua
+            player.setTint(0x475569);
+            
+            let txt = scene.add.text(320, 160, 'GAME OVER', { 
+                fontSize: '40px', fill: '#ff2c00', fontFamily: 'Courier New', fontWeight: 'bold' 
+            }).setOrigin(0.5).setScrollFactor(0);
+            txt.setShadow(3, 3, '#000', 4);
+
+            let subTxt = scene.add.text(320, 210, 'Nhấp chuột hoặc chạm để chơi lại', { 
+                fontSize: '14px', fill: '#fff', fontFamily: 'Courier New' 
+            }).setOrigin(0.5).setScrollFactor(0);
+            
+            scene.input.on('pointerdown', () => { scene.scene.restart(); gameOver = false; score = 0; });
+        }
+
+        // Hàm kết thúc trò chơi (Chiến thắng)
+        function executeWin(scene) {
+            if (gameOver) return;
+            gameOver = true;
+            player.setVelocity(0, 0);
+            player.setTint(0xffcc00);
+
+            let txt = scene.add.text(320, 160, 'VICTORY! YOU WIN', { 
+                fontSize: '36px', fill: '#ffcc00', fontFamily: 'Courier New', fontWeight: 'bold' 
+            }).setOrigin(0.5).setScrollFactor(0);
+            txt.setShadow(3, 3, '#000', 4);
+        }
     </script>
 </body>
 </html>
