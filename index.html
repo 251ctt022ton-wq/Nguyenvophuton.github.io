@@ -3,123 +3,167 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Game Cờ Caro</title>
+    <title>Game Tài Xỉu Mini</title>
     <style>
-        body { 
-            font-family: sans-serif; 
-            text-align: center; 
-            background-color: #f9f9f9; 
-            margin-top: 50px; 
+        :root {
+            --primary-color: #ffcc00;
+            --bg-color: #1a1a2e;
+            --card-bg: #162447;
+            --text-color: #ffffff;
+            --tai-color: #e43f5a;
+            --xiu-color: #1f4068;
         }
-        .board { 
-            display: grid; 
-            grid-template-columns: repeat(3, 100px); 
-            gap: 5px; 
-            justify-content: center; 
-            margin-top: 20px;
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
         }
-        .cell { 
-            width: 100px; 
-            height: 100px; 
-            font-size: 3em; 
-            cursor: pointer; 
-            background-color: #fff; 
-            border: 2px solid #333; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
+
+        .container {
+            background-color: var(--card-bg);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            max-width: 450px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .balance-section {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
             border-radius: 8px;
-            box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
         }
-        .cell:hover { background-color: #e0e0e0; }
-        #status { 
-            margin: 20px; 
-            font-size: 1.5em; 
-            font-weight: bold; 
-            color: #333;
+
+        #balance {
+            color: var(--primary-color);
+            font-weight: bold;
         }
-        button { 
-            padding: 10px 20px; 
-            font-size: 1em; 
-            cursor: pointer; 
-            background-color: #007bff;
-            color: white;
+
+        /* Khu vực xúc xắc */
+        .dice-container {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 25px 0;
+            min-height: 80px;
+        }
+
+        .dice {
+            font-size: 4rem;
+            transition: transform 0.1s ease;
+        }
+
+        .rolling {
+            animation: shake 0.1s infinite alternate;
+        }
+
+        @keyframes shake {
+            0% { transform: translate(2px, 2px) rotate(0deg); }
+            100% { transform: translate(-2px, -2px) rotate(5deg); }
+        }
+
+        /* Khu vực đặt cược */
+        .bet-options {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+        }
+
+        .bet-btn {
             border: none;
+            color: white;
+            padding: 15px 35px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 40%;
+        }
+
+        .btn-tai { background-color: var(--tai-color); opacity: 0.6; }
+        .btn-xiu { background-color: var(--xiu-color); opacity: 0.6; }
+
+        .bet-btn.selected {
+            opacity: 1;
+            box-shadow: 0 0 15px var(--primary-color);
+            transform: scale(1.05);
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group input {
+            width: 80%;
+            padding: 10px;
             border-radius: 5px;
-            box-shadow: 1px 1px 3px rgba(0,0,0,0.2);
-        }
-        button:hover { background-color: #0056b3; }
-    </style>
-</head>
-<body>
-
-    <h1>🎮 Game Cờ Caro Mini 🎮</h1>
-    <div id="status">Lượt của X</div>
-    <div class="board" id="board"></div>
-    <br>
-    <button onclick="resetGame()">Chơi lại</button>
-
-    <script>
-        let board = ["", "", "", "", "", "", "", "", ""];
-        let currentPlayer = "X";
-        let gameActive = true;
-
-        function createBoard() {
-            const boardElement = document.getElementById("board");
-            boardElement.innerHTML = "";
-            board.forEach((cell, index) => {
-                const cellElement = document.createElement("div");
-                cellElement.classList.add("cell");
-                cellElement.innerText = cell;
-                // Đổi màu chữ cho X và O
-                if(cell === "X") cellElement.style.color = "#ff4757";
-                if(cell === "O") cellElement.style.color = "#2ed573";
-                
-                cellElement.onclick = () => makeMove(index);
-                boardElement.appendChild(cellElement);
-            });
+            border: 1px solid #333;
+            background-color: #0f172a;
+            color: white;
+            font-size: 1.1rem;
+            text-align: center;
         }
 
-        function makeMove(index) {
-            if (board[index] !== "" || !gameActive) return;
-            board[index] = currentPlayer;
-            checkWinner();
-            if(gameActive) {
-                currentPlayer = currentPlayer === "X" ? "O" : "X";
-                document.getElementById("status").innerText = `Lượt của ${currentPlayer}`;
-            }
-            createBoard();
+        .action-btn {
+            background-color: var(--primary-color);
+            color: #000;
+            border: none;
+            padding: 12px 40px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 25px;
+            cursor: pointer;
+            width: 85%;
+            transition: 0.2s;
         }
 
-        function checkWinner() {
-            const winConditions = [
-                [0, 1, 2], [3, 4, 5], [6, 7, 8], // Hàng ngang
-                [0, 3, 6], [1, 4, 7], [2, 5, 8], // Hàng dọc
-                [0, 4, 8], [2, 4, 6]             // Chéo
-            ];
-            for (let condition of winConditions) {
-                let [a, b, c] = condition;
-                if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-                    document.getElementById("status").innerText = `🎉 ${board[a]} Đã Thắng! 🎉`;
-                    gameActive = false;
-                    return;
-                }
-            }
-            if (!board.includes("")) {
-                document.getElementById("status").innerText = "🤝 Hòa nhau! 🤝";
-                gameActive = false;
-            }
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 204, 0, 0.4);
         }
 
-        function resetGame() {
-            board = ["", "", "", "", "", "", "", "", ""];
-            currentPlayer = "X";
-            gameActive = true;
-            document.getElementById("status").innerText = "Lượt của X";
-            createBoard();
+        /* Kết quả & Lịch sử */
+        .result-display {
+            margin-top: 20px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            min-height: 30px;
         }
 
-        createBoard();
-    </script>
-</body>
-</html>
+        .history-section {
+            margin-top: 25px;
+            text-align: left;
+            border-top: 1px solid #333;
+            padding-top: 15px;
+        }
+
+        .history-title {
+            font-size: 0.9rem;
+            color: #aaa;
+            margin-bottom: 10px;
+        }
+
+        .history-logs {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            max-height: 60px;
+            overflow-y: auto
