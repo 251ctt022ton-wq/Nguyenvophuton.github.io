@@ -166,4 +166,181 @@
             gap: 8px;
             flex-wrap: wrap;
             max-height: 60px;
-            overflow-y: auto
+            overflow-y: auto;
+        }
+
+        .history-dot {
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+        .dot-tai { background-color: var(--tai-color); color: white; }
+        .dot-xiu { background-color: var(--xiu-color); color: white; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>TÀI XỈU MINI</h1>
+        
+        <div class="balance-section">
+            Số dư: <span id="balance">1,000,000</span> VNĐ
+        </div>
+
+        <div class="dice-container">
+            <div class="dice" id="dice1">⚀</div>
+            <div class="dice" id="dice2">⚁</div>
+            <div class="dice" id="dice3">⚂</div>
+        </div>
+
+        <div class="bet-options">
+            <button class="bet-btn btn-tai" onclick="selectChoice('Tài')">TÀI<br><span style="font-size: 0.8rem; font-weight: normal;">(11 - 17)</span></button>
+            <button class="bet-btn btn-xiu" onclick="selectChoice('Xỉu')">XỈU<br><span style="font-size: 0.8rem; font-weight: normal;">(4 - 10)</span></button>
+        </div>
+
+        <div class="input-group">
+            <input type="number" id="bet-amount" placeholder="Nhập số tiền cược..." min="1000">
+        </div>
+
+        <button class="action-btn" onclick="playGame()">LẮC XÚC XẮC</button>
+
+        <div class="result-display" id="result-text"></div>
+
+        <div class="history-section">
+            <div class="history-title">Lịch sử phiên:</div>
+            <div class="history-logs" id="history-box"></div>
+        </div>
+    </div>
+
+    <script>
+        // Khởi tạo trạng thái game
+        let balance = 1000000;
+        let selectedChoice = null;
+        const diceEmojis = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+
+        // Cập nhật số dư ban đầu lên UI
+        function updateBalanceUI() {
+            document.getElementById('balance').innerText = balance.toLocaleString();
+        }
+
+        // Hàm chọn cửa Tài hoặc Xỉu
+        function selectChoice(choice) {
+            selectedChoice = choice;
+            document.querySelectorAll('.bet-btn').forEach(btn => btn.classList.remove('selected'));
+            
+            if(choice === 'Tài') {
+                document.querySelector('.btn-tai').classList.add('selected');
+            } else {
+                document.querySelector('.btn-xiu').classList.add('selected');
+            }
+        }
+
+        // Hàm xử lý khi bấm nút Lắc
+        function playGame() {
+            const betInput = document.getElementById('bet-amount');
+            const betAmount = parseInt(betInput.value);
+            const resultText = document.getElementById('result-text');
+
+            // Kiểm tra điều kiện hợp lệ
+            if (!selectedChoice) {
+                alert('Vui lòng chọn TÀI hoặc XỈU trước khi lắc!');
+                return;
+            }
+            if (isNaN(betAmount) || betAmount <= 0) {
+                alert('Vui lòng nhập số tiền cược hợp lệ!');
+                return;
+            }
+            if (betAmount > balance) {
+                alert('Số dư của bạn không đủ để đặt cược!');
+                return;
+            }
+
+            // Trừ tiền đặt cược tạm thời
+            balance -= betAmount;
+            updateBalanceUI();
+
+            // Hiệu ứng lắc xúc xắc (chạy trong 1 giây)
+            const diceElements = [document.getElementById('dice1'), document.getElementById('dice2'), document.getElementById('dice3')];
+            diceElements.forEach(dice => dice.classList.add('rolling'));
+            resultText.innerText = "Đang lắc...";
+
+            let shakeInterval = setInterval(() => {
+                diceElements.forEach(dice => {
+                    let randomFace = Math.floor(Math.random() * 6);
+                    dice.innerText = diceEmojis[randomFace];
+                });
+            }, 80);
+
+            // Sau 1 giây ngừng lắc và tính kết quả
+            setTimeout(() => {
+                clearInterval(shakeInterval);
+                diceElements.forEach(dice => dice.classList.remove('rolling'));
+
+                // Tạo kết quả ngẫu nhiên thực tế (1 - 6)
+                let d1 = Math.floor(Math.random() * 6) + 1;
+                let d2 = Math.floor(Math.random() * 6) + 1;
+                let d3 = Math.floor(Math.random() * 6) + 1;
+
+                // Cập nhật xúc xắc chuẩn cuối cùng
+                diceElements[0].innerText = diceEmojis[d1 - 1];
+                diceElements[1].innerText = diceEmojis[d2 - 1];
+                diceElements[2].innerText = diceEmojis[d3 - 1];
+
+                let totalScore = d1 + d2 + d3;
+                let gameResult = "";
+
+                // Luật chơi chuẩn: 3-10 là Xỉu, 11-18 là Tài
+                // Lưu ý: Một số luật 3 và 18 (bão) nhà cái ăn hết, nhưng ở đây tính phổ thông cho vui vẻ:
+                if (totalScore >= 11) {
+                    gameResult = "Tài";
+                } else {
+                    gameResult = "Xỉu";
+                }
+
+                // Kiểm tra thắng thua
+                let winMessage = "";
+                if (selectedChoice === gameResult) {
+                    let winAmount = betAmount * 2;
+                    balance += winAmount;
+                    winMessage = `<span style="color: #4cd137;">Thắng! +${betAmount.toLocaleString()} VNĐ</span>`;
+                } else {
+                    winMessage = `<span style="color: #e84118;">Thua! -${betAmount.toLocaleString()} VNĐ</span>`;
+                }
+
+                // Hiển thị kết quả chi tiết
+                resultText.innerHTML = `${totalScore} nút - ${gameResult} <br> ${winMessage}`;
+                
+                // Cập nhật lại số dư và lịch sử phiên
+                updateBalanceUI();
+                addHistory(gameResult, totalScore);
+
+            }, 1000);
+        }
+
+        // Hàm thêm lịch sử phiên
+        function addHistory(result, score) {
+            const historyBox = document.getElementById('history-box');
+            const dot = document.createElement('div');
+            dot.classList.add('history-dot');
+            
+            if (result === 'Tài') {
+                dot.classList.add('dot-tai');
+                dot.innerText = 'T';
+            } else {
+                dot.classList.add('dot-xiu');
+                dot.innerText = 'X';
+            }
+            
+            dot.title = `Tổng nút: ${score}`;
+            
+            // Chèn phiên mới nhất lên đầu lịch sử
+            historyBox.insertBefore(dot, historyBox.firstChild);
+        }
+    </script>
+</body>
+</html>
